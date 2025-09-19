@@ -39,8 +39,8 @@ int main()
         scanf("%d", &choice);
 
         switch (choice) {
-            case 1: printf("case1"); break;
-            case 2: printf("case2"); break;
+            case 1: printf("sawadeekub"); break;
+            case 2: printf("rjan"); break;
             case 3: printf("case3"); break;
             case 4: printf("case4"); break;
             case 5: printf("case5"); break;
