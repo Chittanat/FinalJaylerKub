@@ -36,11 +36,13 @@ int addData() {  //เพิ่มข้อมูล
 
 int createCSV() //สร้างไฟล์
 {
-    FILE *file = fopen("khomul_lukka.csv", "a");  
+    FILE *file = fopen("khomul_lukka.csv", "w");  
     if (file == NULL) {
         printf("Unable to open file\n");
         return 1;
     }
+    
+    fprintf(file, "AssetName, AssetID, MaintenanceDate, MaintenanceDetails\n");
     printf("File opened successfully!\n");
     fclose(file);
     return 0;
