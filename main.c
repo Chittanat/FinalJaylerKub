@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 
 int choice;
 char name[50];
 char id[50];
 char date[50];
 char details[50];
+
 
 
 
@@ -41,12 +43,53 @@ int createCSV() //สร้างไฟล์
         printf("Unable to open file\n");
         return 1;
     }
-    
+
     fprintf(file, "AssetName, AssetID, MaintenanceDate, MaintenanceDetails\n");
     printf("File opened successfully!\n");
     fclose(file);
     return 0;
 }
+
+void searchData() {
+    FILE *file = fopen("khomul_lukka.csv", "r");
+    char line[200];
+    char keyword[50];
+    int found = 0;
+
+    if (file == NULL) {
+        printf("Cannot open file.\n");
+        return;
+    }
+
+    printf("Enter asset name or ID to search: ");
+    scanf("%s", keyword);
+
+     while (fgets(line, sizeof(line), file)) {
+        char *name = strtok(line, ",");       // คอลัมน์แรก
+        char *id = strtok(NULL, ",");     // คอลัมน์สอง
+
+        if (id && name) {
+            // ตรวจสอบ keyword ว่าตรงกับ id หรือ name
+            if (strstr(name, keyword) || strstr(id, keyword)) {
+                printf("Found: %s, %s, %s, %s\n", name,id,date,details);
+                found = 1;
+        }
+    }
+    }
+
+    if (!found) {
+        printf("No result found.\n");
+    }
+
+    fclose(file);
+}
+
+
+
+
+
+
+
 int main()
 {
     createCSV(); 
@@ -64,7 +107,7 @@ int main()
         switch (choice) {
             case 1: addData(); 
                     break;
-            case 2: printf("Search Assets"); 
+            case 2: searchData(); 
                     break;
             case 3: printf("Edit Data"); 
                     break;
