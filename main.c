@@ -4,7 +4,10 @@
 int choice;
 char name[50];
 char id[50];
-char date[50];
+int day;
+int month;
+int year = 2025;
+char date[30];
 char details[50];
 
 
@@ -22,15 +25,34 @@ int addData() {  //เพิ่มข้อมูล
     scanf("%s", name);
     printf("Please enter asset ID: ");
     scanf("%s", id);
-    printf("Please enter maintenance date (YYYY-MM-DD):  ");
-    scanf("%s", date);
+   do {
+        printf("Please enter maintenance day (1-31): ");
+        scanf("%d", &day);
+        if(day < 1 || day > 31){
+            printf("============================================================================\n");
+            printf("Invalid day. Please enter maintenance day again.\n");
+             printf("============================================================================\n");
+        }
+    } while (day < 1 || day > 31);
+       
+    do {
+        printf("Please enter maintenance month (1-12): ");
+        scanf("%d", &month);
+        if(month < 1 || month > 12){
+            printf("============================================================================\n");
+            printf("Invalid month. Please enter maintenance month again.\n");
+            printf("============================================================================\n");
+        }
+    } while (month < 1 || month > 12);
+        
+    sprintf(date, "%d-%d-%d", day , month , year); // แปลง int เป็น string
+    
     printf("Please enter maintenance delails: ");
     scanf("%s", details);
     
     fprintf(file, "%s, %s, %s, %s\n", name, id, date, details); // เขียนลงไฟล์ CSV
     fclose(file);
-
-
+ 
     printf("Data added successfully!\n");
 
     return 0;
@@ -44,7 +66,7 @@ int createCSV() //สร้างไฟล์
         return 1;
     }
 
-    fprintf(file, "AssetName, AssetID, MaintenanceDate, MaintenanceDetails\n");
+    fprintf(file, "AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails\n");
     printf("File opened successfully!\n");
     fclose(file);
     return 0;
@@ -65,13 +87,13 @@ void searchData() {
     scanf("%s", keyword);
 
      while (fgets(line, sizeof(line), file)) {
-        char *name = strtok(line, ",");       // คอลัมน์แรก
-        char *id = strtok(NULL, ",");     // คอลัมน์สอง
+        char *name = strtok(line, ",");       
+        char *id = strtok(NULL, ",");     
 
         if (id && name) {
             // ตรวจสอบ keyword ว่าตรงกับ id หรือ name
             if (strstr(name, keyword) || strstr(id, keyword)) {
-                printf("Found: %s, %s, %s, %s\n", name,id,date,details);
+                printf("Found: %s, %s, %s-%s-%s, %s\n", name, id, day, month, year, details);
                 found = 1;
         }
     }
@@ -97,7 +119,7 @@ int main()
         printf("\n=== Asset Maintenance Management System ===\n");
         printf("1. Add New Data\n");
         printf("2. Search Assets\n");
-        printf("3. Edit Data\n");
+        printf("3. Update Data\n");
         printf("4. Delete Data\n");
         printf("5. Display All Data\n");
         printf("0. Exit the Program\n");
@@ -109,7 +131,7 @@ int main()
                     break;
             case 2: searchData(); 
                     break;
-            case 3: printf("Edit Data"); 
+            case 3: printf("Update Data"); 
                     break;
             case 4: printf("Delete Data"); 
                     break;
