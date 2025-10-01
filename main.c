@@ -9,9 +9,22 @@ int month;
 int year = 2025;
 char date[30];
 char details[50];
+char line[200];
+char keyword[50];
+int found = 0;
 
 
-
+int createCSV() //สร้างไฟล์
+{
+    FILE *file = fopen("khomul_lukka.csv", "r");
+if (file == NULL) {
+    file = fopen("khomul_lukka.csv", "w");
+    fprintf(file, "AssetName,AssetID,MaintenanceDate(DD-MM-YYYY),MaintenanceDetails\n");
+}
+fclose(file);
+   
+    return 0;
+}
 
 int addData() {  //เพิ่มข้อมูล
     FILE *file = fopen("khomul_lukka.csv", "a"); 
@@ -58,25 +71,9 @@ int addData() {  //เพิ่มข้อมูล
     return 0;
 }
 
-int createCSV() //สร้างไฟล์
-{
-    FILE *file = fopen("khomul_lukka.csv", "w");  
-    if (file == NULL) {
-        printf("Unable to open file\n");
-        return 1;
-    }
-
-    fprintf(file, "AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails\n");
-    printf("File opened successfully!\n");
-    fclose(file);
-    return 0;
-}
 
 void searchData() {
     FILE *file = fopen("khomul_lukka.csv", "r");
-    char line[200];
-    char keyword[50];
-    int found = 0;
 
     if (file == NULL) {
         printf("Cannot open file.\n");
@@ -86,14 +83,23 @@ void searchData() {
     printf("Enter asset name or ID to search: ");
     scanf("%s", keyword);
 
-     while (fgets(line, sizeof(line), file)) {
-        char *name = strtok(line, ",");       
-        char *id = strtok(NULL, ",");     
+    fgets(line, sizeof(line), file); // ข้าม header
 
-        if (id && name) {
+     while (fgets(line, sizeof(line), file)) {
+
+        char *name = strtok(line, ",");       
+        char *id = strtok(NULL, ",");
+        char *date = strtok(NULL, ",");
+        char *details = strtok(NULL, "\n");     
+
+        if (id && name && date && details) {
+
+            while (*name == ' ') name++;
+            while (*id == ' ') id++;
+
             // ตรวจสอบ keyword ว่าตรงกับ id หรือ name
             if (strstr(name, keyword) || strstr(id, keyword)) {
-                printf("Found: %s, %s, %s-%s-%s, %s\n", name, id, day, month, year, details);
+                printf("Found: %s, %s, %s, %s\n", name, id, date, details);
                 found = 1;
         }
     }
@@ -106,9 +112,84 @@ void searchData() {
     fclose(file);
 }
 
+int updateData() {
+    FILE *file, *temp;
+    char searchID[50];
+    int found = 0;
+    
+    
+    printf("Enter asset ID to search: ");
+    scanf("%s", searchID);
 
+    file = fopen("khomul_lukka.csv", "r");
+    temp = fopen("temp.csv", "w");
 
+    if (file == NULL || temp == NULL) {
+        printf("Unable to open file\n");
+        return 1;
+    }
 
+    char header[200];
+    if (fgets(header, sizeof(header), file)) {// Copy header to temp file
+      fputs(header, temp);
+    }
+    while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n", name, id, date, details) != EOF) {
+        
+        char *p = id;
+    while (*p == ' ') p++;      
+    strcpy(id, p);              
+    id[strcspn(id, "\n")] = 0; 
+        
+        if (strcmp(id, searchID) == 0) {
+            found = 1;
+            printf("\nData found:\n");
+            printf("Name: %s\nID: %s\nDate: %s\nDetails: %s\n", name, id, date, details);
+
+            printf("\nWhich field do you want to update?\n");
+            printf("1. Name\n2. ID\n3. Date\n4. Details\nChoice: ");
+            scanf("%d", &choice);
+
+            getchar(); // Clear newline character from input buffer
+            switch (choice) {
+                case 1:
+                    fgets(name, sizeof(name), stdin);
+                    name[strcspn(name, "\n")] = 0; // Remove newline character
+                    break;
+                case 2:
+                    printf("Enter new ID: ");
+                    fgets(id, sizeof(id), stdin);
+                    id[strcspn(id, "\n")] = 0; // Remove newline character
+                    break;
+                case 3:
+                    printf("Enter new date: ");
+                    fgets(date, sizeof(date), stdin);
+                    date[strcspn(date, "\n")] = 0;
+                    break;
+                case 4:
+                    printf("Enter new details: ");
+                    fgets(details, sizeof(details), stdin);
+                    details[strcspn(details, "\n")] = 0;
+                    break;
+                default:
+                    printf("Invalid choice\n");
+            }
+        }
+        fprintf(temp, "%s,%s,%s,%s\n", name, id, date, details);
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    remove("khomul_lukka.csv");
+    rename("temp.csv", "khomul_lukka.csv");
+
+    if (found)
+        printf("Update complete\n");
+    else
+        printf("ID not found\n");
+
+    return 0;
+}
 
 
 
@@ -131,7 +212,7 @@ int main()
                     break;
             case 2: searchData(); 
                     break;
-            case 3: printf("Update Data"); 
+            case 3: updateData();
                     break;
             case 4: printf("Delete Data"); 
                     break;
