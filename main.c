@@ -152,6 +152,7 @@ int updateData() {
             getchar(); // Clear newline character from input buffer
             switch (choice) {
                 case 1:
+                    printf("Enter new name: ");
                     fgets(name, sizeof(name), stdin);
                     name[strcspn(name, "\n")] = 0; // Remove newline character
                     break;
