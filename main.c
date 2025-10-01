@@ -12,14 +12,18 @@ char details[50];
 char line[200];
 char keyword[50];
 int found = 0;
+char searchID[50];
+char header[200];
+char delID[50];
+int deleted = 0;
 
 
 int createCSV() //สร้างไฟล์
 {
-    FILE *file = fopen("khomul_lukka.csv", "r");
+    FILE *file = fopen("AssetData.csv", "r");
 if (file == NULL) {
     file = fopen("khomul_lukka.csv", "w");
-    fprintf(file, "AssetName,AssetID,MaintenanceDate(DD-MM-YYYY),MaintenanceDetails\n");
+    fprintf(file, "AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails\n");
 }
 fclose(file);
    
@@ -27,7 +31,7 @@ fclose(file);
 }
 
 int addData() {  //เพิ่มข้อมูล
-    FILE *file = fopen("khomul_lukka.csv", "a"); 
+    FILE *file = fopen("AssetData.csv", "a"); 
     
     if (file == NULL) {
         printf("Unable to open file\n");
@@ -61,7 +65,10 @@ int addData() {  //เพิ่มข้อมูล
     sprintf(date, "%d-%d-%d", day , month , year); // แปลง int เป็น string
     
     printf("Please enter maintenance delails: ");
-    scanf("%s", details);
+    printf("Please enter maintenance details: ");
+    getchar(); // clear newline
+    fgets(details, sizeof(details), stdin);
+    details[strcspn(details, "\n")] = 0; // remove newline
     
     fprintf(file, "%s, %s, %s, %s\n", name, id, date, details); // เขียนลงไฟล์ CSV
     fclose(file);
@@ -73,7 +80,7 @@ int addData() {  //เพิ่มข้อมูล
 
 
 void searchData() {
-    FILE *file = fopen("khomul_lukka.csv", "r");
+    FILE *file = fopen("AssetData.csv", "r");
 
     if (file == NULL) {
         printf("Cannot open file.\n");
@@ -114,14 +121,13 @@ void searchData() {
 
 int updateData() {
     FILE *file, *temp;
-    char searchID[50];
-    int found = 0;
+    
     
     
     printf("Enter asset ID to search: ");
     scanf("%s", searchID);
 
-    file = fopen("khomul_lukka.csv", "r");
+    file = fopen("AssetData.csv", "r");
     temp = fopen("temp.csv", "w");
 
     if (file == NULL || temp == NULL) {
@@ -129,7 +135,6 @@ int updateData() {
         return 1;
     }
 
-    char header[200];
     if (fgets(header, sizeof(header), file)) {// Copy header to temp file
       fputs(header, temp);
     }
@@ -162,9 +167,23 @@ int updateData() {
                     id[strcspn(id, "\n")] = 0; // Remove newline character
                     break;
                 case 3:
-                    printf("Enter new date: ");
-                    fgets(date, sizeof(date), stdin);
-                    date[strcspn(date, "\n")] = 0;
+                    do {
+                    printf("Please enter maintenance day (1-31): ");
+                    scanf("%d", &day);
+                    if (day < 1 || day > 31) {
+                    printf("Invalid day. Try again.\n");
+                    }
+                    } while (day < 1 || day > 31);
+
+                    do {
+                    printf("Please enter maintenance month (1-12): ");
+                    scanf("%d", &month);
+                    if (month < 1 || month > 12) {
+                    printf("Invalid month. Try again.\n");
+                    }
+                    } while (month < 1 || month > 12);
+
+                    sprintf(date, "%d-%d-%d", day, month, year);  
                     break;
                 case 4:
                     printf("Enter new details: ");
@@ -175,14 +194,14 @@ int updateData() {
                     printf("Invalid choice\n");
             }
         }
-        fprintf(temp, "%s,%s,%s,%s\n", name, id, date, details);
+        fprintf(temp, "%s, %s, %s, %s\n", name, id, date, details);
     }
 
     fclose(file);
     fclose(temp);
 
-    remove("khomul_lukka.csv");
-    rename("temp.csv", "khomul_lukka.csv");
+    remove("AssetData.csv");
+    rename("temp.csv", "AssetData.csv");
 
     if (found)
         printf("Update complete\n");
@@ -193,7 +212,56 @@ int updateData() {
 }
 
 
+int deleteData() {
+    FILE *file, *temp;
 
+    printf("Enter asset ID to delete: ");
+    scanf("%s", delID);
+
+    file = fopen("AssetData.csv", "r");
+    temp = fopen("temp.csv", "w");
+
+    if (file == NULL || temp == NULL) {
+        printf("Unable to open file\n");
+        return 1;
+    }
+
+    // คัดลอก header ไปไฟล์ชั่วคราว
+    if (fgets(header, sizeof(header), file)) {
+        fputs(header, temp);
+    }
+
+    // อ่านแต่ละบรรทัดและตรวจสอบ
+    while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n",
+                  name, id, date, details) != EOF) {
+        
+        char *p = id;
+        while (*p == ' ') p++;      
+        strcpy(id, p);              
+        id[strcspn(id, "\n")] = 0;
+
+        if (strcmp(id, delID) == 0) {
+            printf("Deleting: %s, %s, %s, %s\n", name, id, date, details);
+            deleted = 1;
+            continue; // ข้ามบรรทัดนี้ ไม่เขียนลง temp
+        }
+        fprintf(temp, "%s, %s, %s, %s\n", name, id, date, details);
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    remove("AssetData.csv");
+    rename("temp.csv", "AssetData.csv");
+
+    if (deleted)
+        printf("Delete complete\n");
+    else
+        printf("ID not found\n");
+
+    return 0;
+}
+ 
 int main()
 {
     createCSV(); 
@@ -203,7 +271,6 @@ int main()
         printf("2. Search Assets\n");
         printf("3. Update Data\n");
         printf("4. Delete Data\n");
-        printf("5. Display All Data\n");
         printf("0. Exit the Program\n");
         printf("Select Menu: ");
         scanf("%d", &choice);
@@ -215,9 +282,7 @@ int main()
                     break;
             case 3: updateData();
                     break;
-            case 4: printf("Delete Data"); 
-                    break;
-            case 5: printf("Display All Data"); 
+            case 4: deleteData(); 
                     break;
             case 0: printf("Operation Completed\n"); 
                     break;
