@@ -16,6 +16,14 @@ char searchID[50];
 char header[200];
 char delID[50];
 int deleted = 0;
+char searchName[50];
+int matchCount = 0;
+char updateName[50];
+char matchName[50][50];
+char matchID[50][50];
+char matchDate[50][30];
+char matchDetails[50][50];
+int count = 0;
 
 
 int createCSV() //สร้างไฟล์
@@ -64,7 +72,7 @@ int addData() {  //เพิ่มข้อมูล
         
     sprintf(date, "%d-%d-%d", day , month , year); // แปลง int เป็น string
     
-    printf("Please enter maintenance delails: ");
+
     printf("Please enter maintenance details: ");
     getchar(); // clear newline
     fgets(details, sizeof(details), stdin);
@@ -121,11 +129,7 @@ void searchData() {
 
 int updateData() {
     FILE *file, *temp;
-    
-    
-    
-    printf("Enter asset ID to search: ");
-    scanf("%s", searchID);
+   
 
     file = fopen("AssetData.csv", "r");
     temp = fopen("temp.csv", "w");
@@ -138,13 +142,46 @@ int updateData() {
     if (fgets(header, sizeof(header), file)) {// Copy header to temp file
       fputs(header, temp);
     }
+
+    printf("Enter asset name to search: ");
+    scanf("%s", updateName);
+
+
     while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n", name, id, date, details) != EOF) {
         
-        char *p = id;
+        char *p = name;
     while (*p == ' ') p++;      
-    strcpy(id, p);              
+    strcpy(name, p);              
     id[strcspn(id, "\n")] = 0; 
         
+        if (strstr(name, updateName)) {
+            printf("%d) %s, %s, %s, %s\n", count + 1, name, id, date, details);
+            strcpy(matchName[count], name);
+            strcpy(matchID[count], id);
+            strcpy(matchDate[count], date);
+            strcpy(matchDetails[count], details);
+            count++;
+        }
+    }
+
+    rewind(file);
+    fgets(header, sizeof(header), file); // skip header
+
+    if (count > 1) {
+        printf("Multiple assets found with the same name.\nEnter Asset ID to update: ");
+        scanf("%s", searchID);
+    } else {
+        strcpy(searchID, matchID[0]);
+    }
+
+    found = 0;
+    while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n",
+                  name, id, date, details) != EOF) {
+
+        char *p = id;
+        while (*p == ' ') p++;
+        strcpy(id, p);
+
         if (strcmp(id, searchID) == 0) {
             found = 1;
             printf("\nData found:\n");
@@ -153,37 +190,29 @@ int updateData() {
             printf("\nWhich field do you want to update?\n");
             printf("1. Name\n2. ID\n3. Date\n4. Details\nChoice: ");
             scanf("%d", &choice);
+            getchar();
 
-            getchar(); // Clear newline character from input buffer
             switch (choice) {
                 case 1:
                     printf("Enter new name: ");
                     fgets(name, sizeof(name), stdin);
-                    name[strcspn(name, "\n")] = 0; // Remove newline character
+                    name[strcspn(name, "\n")] = 0;
                     break;
                 case 2:
                     printf("Enter new ID: ");
                     fgets(id, sizeof(id), stdin);
-                    id[strcspn(id, "\n")] = 0; // Remove newline character
+                    id[strcspn(id, "\n")] = 0;
                     break;
                 case 3:
                     do {
-                    printf("Please enter maintenance day (1-31): ");
-                    scanf("%d", &day);
-                    if (day < 1 || day > 31) {
-                    printf("Invalid day. Try again.\n");
-                    }
+                        printf("Enter new day (1-31): ");
+                        scanf("%d", &day);
                     } while (day < 1 || day > 31);
-
                     do {
-                    printf("Please enter maintenance month (1-12): ");
-                    scanf("%d", &month);
-                    if (month < 1 || month > 12) {
-                    printf("Invalid month. Try again.\n");
-                    }
+                        printf("Enter new month (1-12): ");
+                        scanf("%d", &month);
                     } while (month < 1 || month > 12);
-
-                    sprintf(date, "%d-%d-%d", day, month, year);  
+                    sprintf(date, "%d-%d-%d", day, month, year);
                     break;
                 case 4:
                     printf("Enter new details: ");
@@ -196,6 +225,7 @@ int updateData() {
         }
         fprintf(temp, "%s, %s, %s, %s\n", name, id, date, details);
     }
+
 
     fclose(file);
     fclose(temp);
