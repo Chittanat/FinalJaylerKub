@@ -24,6 +24,8 @@ char matchID[50][50];
 char matchDate[50][30];
 char matchDetails[50][50];
 int count = 0;
+int foundMatch = 0;
+
 
 
 int createCSV() //สร้างไฟล์
@@ -112,13 +114,16 @@ void searchData() {
             while (*name == ' ') name++;
             while (*id == ' ') id++;
 
+            //  เพิ่มการตรวจสอบว่ามี (Deleted) หรือไม่
+            if (!strstr(details, "(Deleted)")) {
             // ตรวจสอบ keyword ว่าตรงกับ id หรือ name
             if (strstr(name, keyword) || strstr(id, keyword)) {
                 printf("Found: %s, %s, %s, %s\n", name, id, date, details);
-                found = 1;
+              found = 1;
+            }
         }
-    }
-    }
+     }
+ }
 
     if (!found) {
         printf("No result found.\n");
@@ -127,10 +132,17 @@ void searchData() {
     fclose(file);
 }
 
+void trim(char *str) {
+    char *p = str;
+    while (*p == ' ') p++;
+    memmove(str, p, strlen(p) + 1);
+    for (int i = strlen(str) - 1; i >= 0 && str[i] == ' '; i--)
+        str[i] = '\0';
+}
+
 int updateData() {
     FILE *file, *temp;
    
-
     file = fopen("AssetData.csv", "r");
     temp = fopen("temp.csv", "w");
 
@@ -139,23 +151,26 @@ int updateData() {
         return 1;
     }
 
-    if (fgets(header, sizeof(header), file)) {// Copy header to temp file
+    if (fgets(header, sizeof(header), file)) // Copy header to temp file
       fputs(header, temp);
-    }
+    
 
     printf("Enter asset name to search: ");
-    scanf("%s", updateName);
+    getchar(); // clear leftover newline
+fgets(searchName, sizeof(searchName), stdin);
+searchName[strcspn(searchName, "\r\n")] = 0; // remove newline
+    trim(searchName);
 
+    count = 0;
 
     while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n", name, id, date, details) != EOF) {
         
-        char *p = name;
-    while (*p == ' ') p++;      
-    strcpy(name, p);              
-    id[strcspn(id, "\n")] = 0; 
-        
-        if (strstr(name, updateName)) {
-            printf("%d) %s, %s, %s, %s\n", count + 1, name, id, date, details);
+        trim(name);
+        trim(id);
+        trim(date);
+        trim(details);
+
+        if (strcmp(name, searchName) == 0 && !strstr(details, "(Deleted)")) {
             strcpy(matchName[count], name);
             strcpy(matchID[count], id);
             strcpy(matchDate[count], date);
@@ -164,29 +179,43 @@ int updateData() {
         }
     }
 
-    rewind(file);
-    fgets(header, sizeof(header), file); // skip header
+    if (count == 0) {
+        printf("No matching asset found.\n");
+        fclose(file);
+        fclose(temp);
+        remove("temp.csv");
+        return 0;
+    }
 
     if (count > 1) {
-        printf("Multiple assets found with the same name.\nEnter Asset ID to update: ");
-        scanf("%s", searchID);
+        printf("Multiple assets found for '%s':\n", searchName);
+        for (int i = 0; i < count; i++) {
+            printf("%d) %s, %s, %s, %s\n", i+1, matchName[i], matchID[i], matchDate[i], matchDetails[i]);
+        }
+        printf("Enter Asset ID to update: ");
+        scanf(" %[^\n]", searchID);
+        getchar();
+        trim(searchID);
+        
     } else {
         strcpy(searchID, matchID[0]);
     }
+
+    rewind(file);
+    fgets(header, sizeof(header), file); // skip header
 
     found = 0;
     while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n",
                   name, id, date, details) != EOF) {
 
-        char *p = id;
-        while (*p == ' ') p++;
-        strcpy(id, p);
-
-        if (strcmp(id, searchID) == 0) {
+         trim(name);
+        trim(id);
+        trim(date);
+        trim(details);
+                 
+        if (strcmp(id, searchID) == 0 && !strstr(details, "(Deleted)")) {
             found = 1;
-            printf("\nData found:\n");
-            printf("Name: %s\nID: %s\nDate: %s\nDetails: %s\n", name, id, date, details);
-
+            printf("\nData found:\nName: %s\nID: %s\nDate: %s\nDetails: %s\n", name, id, date, details);
             printf("\nWhich field do you want to update?\n");
             printf("1. Name\n2. ID\n3. Date\n4. Details\nChoice: ");
             scanf("%d", &choice);
@@ -196,12 +225,14 @@ int updateData() {
                 case 1:
                     printf("Enter new name: ");
                     fgets(name, sizeof(name), stdin);
-                    name[strcspn(name, "\n")] = 0;
+                    name[strcspn(name, "\r\n")] = 0;
+                    trim(name);
                     break;
                 case 2:
                     printf("Enter new ID: ");
                     fgets(id, sizeof(id), stdin);
-                    id[strcspn(id, "\n")] = 0;
+                    id[strcspn(id, "\r\n")] = 0;
+                    trim(id);
                     break;
                 case 3:
                     do {
@@ -217,7 +248,8 @@ int updateData() {
                 case 4:
                     printf("Enter new details: ");
                     fgets(details, sizeof(details), stdin);
-                    details[strcspn(details, "\n")] = 0;
+                    details[strcspn(details, "\r\n")] = 0;
+                    trim(details);
                     break;
                 default:
                     printf("Invalid choice\n");
@@ -245,8 +277,8 @@ int updateData() {
 int deleteData() {
     FILE *file, *temp;
 
-    printf("Enter asset ID to delete: ");
-    scanf("%s", delID);
+    printf("Enter asset name to delete: ");
+    scanf("%s", searchName);
 
     file = fopen("AssetData.csv", "r");
     temp = fopen("temp.csv", "w");
@@ -265,18 +297,59 @@ int deleteData() {
     while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n",
                   name, id, date, details) != EOF) {
         
-        char *p = id;
-        while (*p == ' ') p++;      
-        strcpy(id, p);              
-        id[strcspn(id, "\n")] = 0;
+        trim(name);
+        trim(id);
+        trim(date);
+        trim(details);
 
-        if (strcmp(id, delID) == 0) {
-            printf("Deleting: %s, %s, %s, %s\n", name, id, date, details);
-            deleted = 1;
-            continue; // ข้ามบรรทัดนี้ ไม่เขียนลง temp
+
+        if (strstr(name, searchName) && !strstr(details, "(Deleted)")) {
+            printf("%d) %s, %s, %s, %s\n", matchCount + 1, name, id, date, details);
+            strcpy(matchName[matchCount], name);
+            strcpy(matchID[matchCount], id);
+            strcpy(matchDate[matchCount], date);
+            strcpy(matchDetails[matchCount], details);
+            matchCount++;
+            foundMatch = 1;
         }
-        fprintf(temp, "%s, %s, %s, %s\n", name, id, date, details);
     }
+    if (!foundMatch) {
+        printf("No matching asset found.\n");
+        fclose(file);
+        fclose(temp);
+        remove("temp.csv");
+        return 0;
+    }
+
+    fclose(file);
+
+    if (matchCount > 1) {
+        printf("Multiple assets found with same name.\nEnter Asset ID to delete: ");
+        scanf("%s", delID);
+    } else {
+        strcpy(delID, matchID[0]);
+    }
+
+    file = fopen("AssetData.csv", "r");
+    fgets(header, sizeof(header), file); // ข้าม header
+
+    while (fscanf(file, "%49[^,],%49[^,],%29[^,],%49[^\n]\n",
+                  name, id, date, details) != EOF) {
+
+        trim(name);
+        trim(id);
+        trim(date);
+        trim(details);
+
+        if (strcmp(id, delID) == 0 && !strstr(details, "(Deleted)")) {
+            deleted = 1;
+            printf("Deleting: %s, %s, %s, %s\n", name, id, date, details);
+            fprintf(temp, "%s , %s, %s, %s (Deleted)\n", name, id, date, details);
+        } else {
+            fprintf(temp, "%s, %s, %s, %s\n", name, id, date, details);
+        }
+    }
+
 
     fclose(file);
     fclose(temp);
