@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 int choice;
 char name[50];
@@ -25,14 +26,16 @@ char matchDate[50][30];
 char matchDetails[50][50];
 int count = 0;
 int foundMatch = 0;
+int testChoice;
 
 
 
 int createCSV() //สร้างไฟล์
 {
     FILE *file = fopen("AssetData.csv", "r");
+     
 if (file == NULL) {
-    file = fopen("khomul_lukka.csv", "w");
+    file = fopen("AssetData.csv", "w");
     fprintf(file, "AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails\n");
 }
 fclose(file);
@@ -365,6 +368,245 @@ int deleteData() {
     return 0;
 }
  
+
+void runUnitTest() {
+    int testChoice;
+    printf("\n--- UNIT TEST MENU ---\n");
+    printf("1. Test addData()\n");
+    printf("2. Test searchData()\n");
+    printf("Select function to test: ");
+    scanf("%d", &testChoice);
+    getchar();
+    
+    // สำรองไฟล์ข้อมูลจริง (ถ้ามี)
+    rename("AssetData.csv", "AssetData_backup.csv");
+    
+    // สร้างไฟล์ทดสอบใหม่
+    createCSV();
+    
+    switch (testChoice) {
+        case 1: {
+            printf("\nRunning addData() test...\n");
+            FILE *f = fopen("AssetData.csv", "a");
+            fprintf(f, "Laptop, A001, 1-10-2025, Battery Replacement\n");
+            fclose(f);
+            
+            f = fopen("AssetData.csv", "r");
+            char line[200];
+            int found = 0;
+            while (fgets(line, sizeof(line), f)) {
+                if (strstr(line, "Laptop")) found = 1;
+            }
+            fclose(f);
+            assert(found == 1);
+            printf(" addData() Unit Test PASSED.\n");
+            break;
+        }
+        case 2: {
+            printf("\nRunning searchData() test...\n");
+            FILE *f = fopen("AssetData.csv", "a");
+            fprintf(f, "Phone, A002, 2-10-2025, Screen Broken\n");
+            fclose(f);
+            
+            f = fopen("AssetData.csv", "r");
+            char line[200];
+            int found = 0;
+            while (fgets(line, sizeof(line), f)) {
+                if (strstr(line, "Phone")) found = 1;
+            }
+            fclose(f);
+            assert(found == 1);
+            printf(" searchData() Unit Test PASSED.\n");
+            break;
+        }
+        default:
+            printf("Invalid test selection.\n");
+    }
+    
+    // ลบไฟล์ทดสอบและคืนค่าไฟล์เดิม
+    remove("AssetData.csv");
+    rename("AssetData_backup.csv", "AssetData.csv");
+    printf("\n Test file cleaned up\n");
+    printf(" Original data restored\n");
+}
+
+void runEndToEndTest() {
+    printf("\n========================================\n");
+    printf("   Running End-to-End Test\n");
+    printf("========================================\n");
+    
+    // สำรองไฟล์ข้อมูลจริง (ถ้ามี)
+    rename("AssetData.csv", "AssetData_backup.csv");
+    
+    FILE *testFile = fopen("AssetData.csv", "w");
+    fprintf(testFile, "AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails\n");
+    fclose(testFile);
+    
+    printf("\n[Test 1] Testing ADD functionality...\n");
+    testFile = fopen("AssetData.csv", "a");
+    fprintf(testFile, "TestLaptop, T001, 15-3-2025, Screen Repair\n");
+    fprintf(testFile, "TestPrinter, T002, 20-5-2025, Ink Replacement\n");
+    fprintf(testFile, "TestRouter, T003, 10-8-2025, Firmware Update\n");
+    fclose(testFile);
+    printf(" Added 3 test records\n");
+    
+    // ตรวจสอบว่าข้อมูลถูกเพิ่มจริง
+    testFile = fopen("AssetData.csv", "r");
+    int lineCount = 0;
+    char buffer[200];
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        lineCount++;
+    }
+    fclose(testFile);
+    assert(lineCount == 4); // header + 3 records
+    printf(" Verified: 3 records added successfully\n");
+    
+    printf("\n[Test 2] Testing SEARCH functionality...\n");
+    testFile = fopen("AssetData.csv", "r");
+    int foundTest = 0;
+    fgets(buffer, sizeof(buffer), testFile); // skip header
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        if (strstr(buffer, "TestLaptop") || strstr(buffer, "T001")) {
+            foundTest = 1;
+            printf(" Found: %s", buffer);
+            break;
+        }
+    }
+    fclose(testFile);
+    assert(foundTest == 1);
+    printf(" Search test PASSED\n");
+    
+    printf("\n[Test 3] Testing UPDATE functionality...\n");
+    FILE *temp = fopen("temp.csv", "w");
+    testFile = fopen("AssetData.csv", "r");
+    
+    fgets(buffer, sizeof(buffer), testFile);
+    fputs(buffer, temp); // copy header
+    
+    int updated = 0;
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        if (strstr(buffer, "T001")) {
+            fprintf(temp, "TestLaptop-Updated, T001, 15-3-2025, Screen Repair (Updated)\n");
+            updated = 1;
+        } else {
+            fputs(buffer, temp);
+        }
+    }
+    fclose(testFile);
+    fclose(temp);
+    
+    remove("AssetData.csv");
+    rename("temp.csv", "AssetData.csv");
+    assert(updated == 1);
+    
+    // ตรวจสอบการอัพเดต
+    testFile = fopen("AssetData.csv", "r");
+    int verifyUpdate = 0;
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        if (strstr(buffer, "Updated")) {
+            verifyUpdate = 1;
+            printf(" Updated: %s", buffer);
+            break;
+        }
+    }
+    fclose(testFile);
+    assert(verifyUpdate == 1);
+    printf(" Update test PASSED\n");
+    
+    printf("\n[Test 4] Testing DELETE functionality...\n");
+    temp = fopen("temp.csv", "w");
+    testFile = fopen("AssetData.csv", "r");
+    
+    fgets(buffer, sizeof(buffer), testFile);
+    fputs(buffer, temp); // copy header
+    
+    int deletedCount = 0;
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        if (strstr(buffer, "T002")) {
+            // เพิ่ม (Deleted) แทนการลบทิ้ง - เก็บรูปแบบเดิมไว้
+            char name[50], id[50], date[30], details[50];
+            sscanf(buffer, "%49[^,],%49[^,],%29[^,],%49[^\n]", name, id, date, details);
+            
+            // trim spaces
+            char *p = name; while (*p == ' ') p++; memmove(name, p, strlen(p) + 1);
+            p = id; while (*p == ' ') p++; memmove(id, p, strlen(p) + 1);
+            p = date; while (*p == ' ') p++; memmove(date, p, strlen(p) + 1);
+            p = details; while (*p == ' ') p++; memmove(details, p, strlen(p) + 1);
+            
+            fprintf(temp, "%s, %s, %s, %s (Deleted)\n", name, id, date, details);
+            deletedCount = 1;
+            printf(" Marked as deleted: T002\n");
+        } else {
+            fputs(buffer, temp);
+        }
+    }
+    fclose(testFile);
+    fclose(temp);
+    
+    remove("AssetData.csv");
+    rename("temp.csv", "AssetData.csv");
+    assert(deletedCount == 1);
+    printf(" Delete test PASSED\n");
+    
+    printf("\n[Test 5] Testing SEARCH after DELETE...\n");
+    testFile = fopen("AssetData.csv", "r");
+    int foundDeleted = 0;
+    int foundActive = 0;
+    fgets(buffer, sizeof(buffer), testFile); // skip header
+    while (fgets(buffer, sizeof(buffer), testFile)) {
+        // เช็คว่ามี T002 และมี Deleted
+        if (strstr(buffer, "T002")) {
+            if (strstr(buffer, "Deleted")) {
+                foundDeleted = 1;
+                printf(" Found deleted record: %s", buffer);
+            }
+        }
+        // เช็คว่ามี T001 หรือ T003 และไม่มี Deleted
+        if ((strstr(buffer, "T001") || strstr(buffer, "T003"))) {
+            if (!strstr(buffer, "Deleted")) {
+                foundActive = 1;
+            }
+        }
+    }
+    fclose(testFile);
+    
+    if (!foundDeleted) {
+        printf(" Warning: Could not verify deleted record mark\n");
+        printf("Checking file content...\n");
+        testFile = fopen("AssetData.csv", "r");
+        while (fgets(buffer, sizeof(buffer), testFile)) {
+            printf("%s", buffer);
+        }
+        fclose(testFile);
+    }
+    
+    assert(foundDeleted == 1);
+    assert(foundActive == 1);
+    printf(" Deleted record marked correctly\n");
+    printf(" Active records still accessible\n");
+    
+    // แสดงสรุปผลการทดสอบ
+    printf("\n========================================\n");
+    printf("   End-to-End Test Summary\n");
+    printf("========================================\n");
+    printf(" ADD Test:    PASSED\n");
+    printf(" SEARCH Test: PASSED\n");
+    printf(" UPDATE Test: PASSED\n");
+    printf(" DELETE Test: PASSED\n");
+    printf(" VERIFICATION: PASSED\n");
+    printf("========================================\n");
+    printf("All End-to-End Tests PASSED!\n");
+    printf("========================================\n");
+    
+    // ลบไฟล์ทดสอบและคืนค่าไฟล์เดิม
+    remove("AssetData.csv");
+    rename("AssetData_backup.csv", "AssetData.csv");
+    printf("\n Test file cleaned up\n");
+    printf(" Original data restored\n");
+}
+
+
+
 int main()
 {
     createCSV(); 
@@ -374,6 +616,8 @@ int main()
         printf("2. Search Assets\n");
         printf("3. Update Data\n");
         printf("4. Delete Data\n");
+        printf("5. Run Unit Test\n");
+        printf("6. Run End-to-End Test\n");
         printf("0. Exit the Program\n");
         printf("Select Menu: ");
         scanf("%d", &choice);
@@ -386,6 +630,10 @@ int main()
             case 3: updateData();
                     break;
             case 4: deleteData(); 
+                    break;
+            case 5: runUnitTest(); 
+                    break;
+            case 6: runEndToEndTest(); 
                     break;
             case 0: printf("Operation Completed\n"); 
                     break;

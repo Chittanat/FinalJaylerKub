@@ -1,0 +1,17 @@
+AssetName, AssetID, MaintenanceDate(DD-MM-YYYY), MaintenanceDetails
+Laptop, A001, 1-10-2025, Battery Updated
+Phone , A002, 2-10-2025, Camera Replacement (Deleted)
+Tablet, A003, 3-10-2025, Screen Repair
+Desktop, A004, 4-10-2025, RAM Upgrade
+Monitor, A005, 5-10-2025, Stand Replacement
+Printer, A006, 6-10-2025, Ink Refilled
+Router, A007, 7-10-2025, Firmware Update
+Scanner, A008, 8-10-2025, Calibration
+Projector, A009, 9-10-2025, Lamp Replacement
+Smartwatch, A010, 10-10-2025, Strap Changed
+Phone, A011, 3-10-2025, Charging Port Replacement
+Headphones, A012, 11-10-2025, Ear Pads Replaced
+Camera, A013, 12-10-2025, Lens Cleaning
+Speaker, A014, 13-10-2025, Bluetooth Module Fixed
+Microphone, A015, 14-10-2025, Cable Replacement
+External Hard Drive, A016, 15-10-2025, Data Recovery
