@@ -1,0 +1,9 @@
+# Compile ทั้ง 3 ไฟล์
+gcc main.c -o main
+gcc unit_test.c -o unit_test
+gcc e2e_test.c -o e2e_test
+
+# รันโปรแกรม
+./main        # โปรแกรมหลัก
+./unit_test   # ทดสอบแต่ละฟังก์ชัน
+./e2e_test    # ทดสอบทั้งระบบ
